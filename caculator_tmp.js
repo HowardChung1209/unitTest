@@ -1,16 +1,46 @@
-btns = {};
+var current = 0;
+var operand = [];
+var operator = [];
+var latestOp = false;
+var lastOpnd = 0;
+var lastOptr = '';
+var currSys = 'dec';
+convertSys = {'hex':16, 'dec':10, 'oct':8, 'bin':2};
 
+var precedence = function(a, b) { // return if a <= b
+    if( '+-'.indexOf(a) === -1 ){
+        if( '+-'.indexOf(b) === -1 ) return true; //a == b
+        else return false; //a > b
+    }
+    else return true; // a <= b
+}
 
-function init()
-{
-	current = 0;
-	operand = [];
-	operator = [];
-	latestOp = false;
-	lastOpnd = 0;
-	lastOptr = '';
-	currSys = 'dec';
+var display = function(value) {
+    var dis = value;
+    if(value < 0){
+        dis = 0xFFFF + value + 1;
+    }
+    var main = value.toString();
+    if(currSys !== 'dec') main = dis.toString(convertSys[currSys]).toUpperCase()
+    $('#main').text(main);
+    $('.value#hex').text(dis.toString(16).toUpperCase());
+    $('.value#dec').text(value);
+    $('.value#oct').text(dis.toString(8));
+    $('.value#bin').text(dis.toString(2));
 
+    if(main.length > 18) $('#main').css('font-size','50%');
+    else $('#main').css('font-size','100%');
+    if(dis.toString(16) > 18) $('.value#hex').css('font-size','50%');
+    else $('.value#hex').css('font-size','100%');
+    if(value.toString().length > 18) $('.value#dec').css('font-size','50%');
+    else $('.value#dec').css('font-size','100%');
+    if(dis.toString(8).length > 18) $('.value#oct').css('font-size','50%');
+    else $('.value#oct').css('font-size','100%');
+    if(dis.toString(2).length > 18)  $('.value#bin').css('font-size','50%');
+    else $('.value#bin').css('font-size','100%');
+}
+
+$( function() {
     $('.btn-mark').click(function() {
         var id = $(this).prop('id');
         console.log(id);
@@ -36,12 +66,6 @@ function init()
                     if (top === 'x') current = current * opnd;
                     if (top === '%') current = parseInt(opnd / current);
                     if (top === 'Mod') current = opnd % current;
-                    /*if(current > 32767 || current < -32768){
-                        alert('The answer is overflow! Please use AC to clear and re-compute.');
-                        return false;
-                    }*/
-                    //if(current > 0x7FFF) current = current - 0xFFFF - 1;
-                    //if(current < -32768) current = current - 0xFFFF - 1;
                     current = current & 0xFFFF;
                     if(current > 0x7FFF) current = current - 0xFFFF - 1;
                     display(current);
@@ -87,11 +111,6 @@ function init()
                 if (lastOptr === 'x') current = current * lastOpnd;
                 if (lastOptr === '%') current = parseInt(current / lastOpnd);
                 if (lastOptr === 'Mod') current = current % lastOpnd;
-                /*if(current > 32767 || current < -32768){
-                    alert('The answer is overflow! Please use AC to clean and re-compute.');
-                    return false;
-                }
-                else*/
                 current = current & 0xFFFF;
                 if(current > 0x7FFF) current = current - 0xFFFF - 1;
                 display(current);
@@ -158,93 +177,4 @@ function init()
         }
         display(current);
     });
-
-    all_btns = $("button");
-
-    for(var i = 0; i < all_btns.length; i++)
-        btns[all_btns[i].id] = all_btns[i];
-
-    btns["CLS"] = $("#C[class=btn-mark]");
-}
-
-function input(inp,assert)
-{
-    arr = inp.split(",")
-    for(var i = 0; i < arr.length; i++)
-        btns[arr[i]].click();
-}
-
-
-QUnit.module('operator test 1', {beforeEach:init});
-
-QUnit.test( "plus", function( assert ) {
-	input("1,+,2,=",assert);
-    assert.ok( 3 == $("#main").text(), "Passed!" );
 });
-
-QUnit.test( "times", function( assert ) {
-    input("4,x,3,=",assert);
-    assert.ok( 12 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "sub^2", function( assert ) {
-    input("1,-,1,±,=",assert);
-    assert.ok( 2 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "mod", function( assert ) {
-    input("8,Mod,3,=",assert);
-    assert.ok( 2 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "back", function( assert ) {
-    input("1,+,3,4,5,←,←,←,1,=",assert);
-    assert.ok( 2 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "mix 1", function( assert ) {
-    input("3,+,4,-,5,+,6,=",assert);
-    assert.ok( 8 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "mix 2", function( assert ) {
-    input("5,+,3,x,2,=",assert);
-    assert.ok( 11 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "mix 3", function( assert ) {
-    input("1,2,3,x,3,2,1,-,1,2,3,x,3,2,1,=",assert);
-    assert.ok( 0 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "float", function( assert ) {
-    input("3,%,2,+,3,%,2,=",assert);
-    assert.ok( 2 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "continous", function( assert ) {
-    input("1,2,%,2,x,3,%,2,%,3,x,2,=",assert);
-    assert.ok( 6 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "clear 1", function( assert ) {
-    input("1,2,3,+,4,5,6,CE,-,2,+,1,=",assert);
-    assert.ok( 122 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "clear 2", function( assert ) {
-    input("1,2,3,+,1,2,3,x,3,4,5,CE,1,±,+,1,=",assert);
-    assert.ok( 1 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "clear 3", function( assert ) {
-    input("1,2,3,+,1,2,3,x,3,4,5,CLS,1,±,+,1,=",assert);
-    assert.ok( 0 == $("#main").text(), "Passed!" );
-});
-
-QUnit.test( "equals", function( assert ) {
-
-	input("3,4,+,5,=,=,=");
-	assert.ok( 49 == $("#main").text(), "Passed" );
-
-} );
